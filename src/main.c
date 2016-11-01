@@ -23,7 +23,7 @@
 #pragma GCC diagnostic ignored "-Wreturn-type"
 
 int main(int argc, char* argv[]) {
-  // By customising __initialize_args() it is possible to pass arguments,
+  // By customizing __initialize_args() it is possible to pass arguments,
   // for example when running tests with semihosting you can pass various
   // options to the test.
   // trace_dump_args(argc, argv);
@@ -48,14 +48,17 @@ int main(int argc, char* argv[]) {
   dac_init();
   trace_puts("Done");
 
+  trace_printf("%s", "Initializing frequency monitor...");
+  freq_init();
+  trace_puts("Done");
+
   // Infinite loop
   while (1) {
-	  uint16_t adc_value = adc_read();
-	  trace_printf("ADC reading: %d\n", adc_value);
-	  dac_write(adc_value);
-    }
+  }
   // Infinite loop, never return.
 }
+
+
 
 #pragma GCC diagnostic pop
 

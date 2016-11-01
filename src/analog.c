@@ -1,5 +1,34 @@
 #include "analog.h"
 
+#include "diag/Trace.h"
+
+static uint32_t current_count = 0;
+static uint16_t first_edge = 1;
+
+uint16_t adc_read(void) {
+	return ADC1->DR;
+}
+
+void adc_enable_pot(uint8_t state) {
+	if (state) {
+		GPIOC->BSRR = GPIO_BSRR_BS_1;
+	}
+	else {
+		GPIOC->BRR = GPIO_BRR_BR_1;
+	}
+}
+
+void dac_write(uint16_t value) {
+	/* Write the provided value to the 12-bit right-aligned DAC input */
+	DAC->DHR12R1 = (value & DAC_DHR12R1_DACC1DHR);
+}
+
+uint32_t freq_read(void) {
+	return (TIMER_CLOCK_FREQ)/current_count;
+}
+
+/* Initialize the ADC
+ */
 void adc_init(void) {
 	/* Enable clock for GPIOC */
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
@@ -41,28 +70,8 @@ void adc_init(void) {
 	ADC1->CR |= ADC_CR_ADSTART;
 }
 
-/* Enable or disable the potentiometer value line
- * Inputs:
- * 	state: 1 for enable 0 for disable
+/* Initialize the DAC
  */
-void adc_enable_pot(uint8_t state) {
-	if (state) {
-		GPIOC->BSRR = GPIO_BSRR_BS_1;
-	}
-	else {
-		GPIOC->BRR = GPIO_BRR_BR_1;
-	}
-}
-
-/* Read the current value for the potentiometer
- * If POT ENABLE is not high this will return garbage results
- * Outputs:
- * 	uint16_t: right-aligned 12-bit ADC value
- */
-uint16_t adc_read(void) {
-	return ADC1->DR;
-}
-
 void dac_init(void) {
 	/* Set PA4 (DAC output) as analog output pin */
 	GPIOA->MODER = GPIO_MODER_MODER4;
@@ -79,11 +88,84 @@ void dac_init(void) {
 	DAC->CR = DAC_CR_EN1;
 }
 
-/* Write the output value of the DAC
- * Inputs:
- * 	uint16_t value: 12-bit right-aligned value to set
- */
-void dac_write(uint16_t value) {
-	/* Write the provided value to the 12-bit right-aligned DAC input */
-	DAC->DHR12R1 = (value & DAC_DHR12R1_DACC1DHR);
+void freq_init(void) {
+	/* Enable the GPIOA clock */
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+	/* Configure PA1 as an input */
+	GPIOA->MODER &= ~(GPIO_MODER_MODER1);
+	/* Ensure no pull up/down for PA1 */
+	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR1);
+
+	/* Enable the TIM2 clock */
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+	/* Configure TIM2 with buffer auto-reload, count up,
+	 * stop on overflow, enable update events, and interrupt
+	 * on overflow only
+	 */
+	TIM2->CR1 = 0x8C;
+
+	/* Set clock prescaler value */
+	TIM2->PSC = TIM2_PRESCALER;
+	/* Set auto-reload delay */
+	TIM2->ARR = TIM2_AUTORELOAD_DELAY;
+	/* Set timer update configuration (rising edge, etc.) */
+	TIM2->EGR = (TIM2->EGR & ~0x5F) | (0x1 & 0x5F);
+
+	/* Assign TIM2 interrupt priority 0 in NVIC */
+	NVIC_SetPriority(TIM2_IRQn, 0);
+	/* Enable TIM2 interrupts in NVIC */
+	NVIC_EnableIRQ(TIM2_IRQn);
+	/* Enable update interrupt generation */
+	TIM2->DIER |= 0x41;
+
+	/* Map EXTI1 line to PA1 */
+	SYSCFG->EXTICR[0] = (SYSCFG->EXTICR[0] & ~(0xF)) | (0 & 0xF);
+
+	/* EXTI1 line interrupts: set rising-edge trigger */
+	EXTI->RTSR |= 0x2;
+
+	/* Unmask interrupts from EXTI1 line */
+	EXTI->IMR |= 0x2;
+
+	/* Assign EXTI1 interrupt priority 0 in NVIC */
+	NVIC_SetPriority(EXTI0_1_IRQn, 0);
+	/* Enable EXTI1 interrupts in the NVIC */
+	NVIC_EnableIRQ(EXTI0_1_IRQn);
+}
+
+void TIM2_IRQHandler() {
+	/* Check if update interrupt flag is set */
+	if (TIM2->SR & TIM_SR_UIF) {
+		trace_printf("\n*** Overflow! ***\n");
+
+		/* Clear update interrupt flag */
+		TIM2->SR |= 0x1;
+		/* Restart stopped timer */
+		TIM2->CR1 |= 0x1;
+	}
+}
+
+void EXTI0_1_IRQHandler() {
+	/* Check if EXTI1 interrupt pending flag is set */
+	if (EXTI->PR & EXTI_PR_PR1) {
+		if (first_edge) {
+			first_edge = 0;
+			/* Reset current timer count */
+			TIM2->CNT = 0;
+			/* Start the timer */
+			TIM2->CR1 |= 0x1;
+		} else {
+			/* Stop the timer */
+			TIM2->CR1 &= ~0x1;
+			/* Read the current timer count */
+			current_count = TIM2->CNT;
+			uint16_t adc_value = adc_read();
+			dac_write(adc_value);
+			trace_printf("ADC reading: %4u, Frequency: %6u [Hz]\n", adc_value, freq_read());
+			first_edge = 1;
+		}
+
+		/* Clear the interrupt flag */
+		EXTI->PR = EXTI_PR_PR1;
+	}
 }
