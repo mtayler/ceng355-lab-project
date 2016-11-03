@@ -12,7 +12,7 @@
 #include "stm32f0xx_conf.h"
 
 #include "analog.h"
-#include "spi.h"
+#include "lcd.h"
 
 
 // Sample pragmas to cope with warnings. Please note the related line at
@@ -48,12 +48,20 @@ int main(int argc, char* argv[]) {
   dac_init();
   trace_puts("Done");
 
+  trace_printf("%s", "Initializing LCD...");
+  lcd_init();
+  trace_puts("Done");
+
   trace_printf("%s", "Initializing frequency monitor...");
   freq_init();
   trace_puts("Done");
 
   // Infinite loop
   while (1) {
+	  trace_puts("Looping");
+	  for (char i='A'; i < 'Z'; i++) {
+		  lcd_char(i);
+	  }
   }
   // Infinite loop, never return.
 }
