@@ -39,30 +39,29 @@ int main(int argc, char* argv[]) {
   // at high speed.
   trace_printf("System clock: %u Hz\n", SystemCoreClock);
 
-  trace_printf("%s", "Initializing ADC...");
-  adc_init();
-  adc_enable_pot(1);
-  trace_puts("Done");
-
-  trace_printf("%s", "Initializing DAC...");
-  dac_init();
-  trace_puts("Done");
+//  trace_printf("%s", "Initializing ADC...");
+//  adc_init();
+//  adc_enable_pot(1);
+//  trace_puts("Done");
+//
+//  trace_printf("%s", "Initializing DAC...");
+//  dac_init();
+//  trace_puts("Done");
 
   trace_printf("%s", "Initializing LCD...");
   lcd_init();
   trace_puts("Done");
 
-  trace_printf("%s", "Initializing frequency monitor...");
-  freq_init();
-  trace_puts("Done");
+//  trace_printf("%s", "Initializing frequency monitor...");
+//  freq_init();
+//  trace_puts("Done");
 
   // Infinite loop
   while (1) {
 	  trace_puts("Looping");
 	  for (char i='A'; i < 'Z'; i++) {
 		  lcd_char(i);
-		  // 1/8 second delay
-		  for (int i=0; i < 6000000; i++);
+		  for (volatile int i=0; i < 6000000; i++);
 	  }
   }
   // Infinite loop, never return.

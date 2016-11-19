@@ -2,30 +2,35 @@
 
 #define LCD_BAUD_RATE_PRESCALER (16);
 
+/* Output data to the shift register through SPI */
+void spi_write(uint8_t);
+
 void lcd_init(void) {
 	/* Enable SPI1 clock */
 	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
 	/* Enable GPIOB clock */
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	/* Enable GPIOC clock */
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 
+	/* Set PC2 to output */
+	GPIOC->MODER = (GPIOC->MODER & ~GPIO_MODER_MODER2) | (GPIO_MODER_MODER2 & GPIO_MODER_MODER2_0);
 	/* Set PB3 to alternate function */
 	GPIOB->MODER = (GPIOB->MODER & ~GPIO_MODER_MODER3) | (GPIO_MODER_MODER3 & GPIO_MODER_MODER3_1);
 	GPIOB->AFR[0] &= ~GPIO_AFRL_AFR3;
 	/* Set PB5 to alternate function */
 	GPIOB->MODER = (GPIOB->MODER & ~GPIO_MODER_MODER5) | (GPIO_MODER_MODER5 & GPIO_MODER_MODER5_1);
 	GPIOB->AFR[0] &= ~GPIO_AFRL_AFR5;
-	/* Set PC2 to output */
-	GPIOC->MODER = (GPIOC->MODER & ~GPIO_MODER_MODER2) | (GPIO_MODER_MODER2 & GPIO_MODER_MODER2_0);
 
-	/* Set PC2 to push-pull mode */
+	/* Set PC2, PB3, PB5 to push-pull mode */
 	GPIOC->OTYPER &= ~GPIO_OTYPER_OT_2;
+	GPIOB->OTYPER &= ~GPIO_OTYPER_OT_3;
+	GPIOB->OTYPER &= ~GPIO_OTYPER_OT_5;
 
-	/* Enable pull up/down resistors on SPI pins */
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR3;
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR5;
-	GPIOC->PUPDR |= GPIO_PUPDR_PUPDR2;
+	/* Disable pull up/down resistors on SPI pins */
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPDR3;
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPDR5;
+	GPIOC->PUPDR &= ~GPIO_PUPDR_PUPDR2;
 
 	/* Set SPI pins to high-speed */
 	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR3;
@@ -40,7 +45,7 @@ void lcd_init(void) {
 			.SPI_CPOL = SPI_CPOL_Low,
 			.SPI_CPHA = SPI_CPHA_1Edge,
 			.SPI_NSS = SPI_NSS_Soft,
-			.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2,
+			.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256,
 			.SPI_FirstBit = SPI_FirstBit_LSB,
 			.SPI_CRCPolynomial = 7
 	};
@@ -48,8 +53,27 @@ void lcd_init(void) {
 
 	SPI_Cmd(SPI1, ENABLE);
 
-	/* Set LCD to 4bit configuration */
+	/* Clear the shift register */
+	spi_write(0x00);
+
+	/* Set the LCD to 4 bit interface */
+	spi_write(0x02);
+	spi_write(0x82);
+	spi_write(0x02);
+
+	/* Set the LCD to 2 lines */
 	lcd_cmd(0x28);
+
+	/* Clear the LCD */
+	lcd_cmd(0x01);
+	/* Home the cursor */
+	lcd_cmd(0x02);
+	/* Set cursor move direction and disable display shift */
+	lcd_cmd(0x06);
+	/* Set the display on, show the cursor, don't blink */
+	lcd_cmd(0x0E);
+	/* Set the cursor to move, and shift to the right */
+	lcd_cmd(0x1C);
 }
 
 void spi_write(uint8_t data) {
