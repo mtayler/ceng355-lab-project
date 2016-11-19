@@ -53,12 +53,7 @@ void lcd_init(void) {
 
 	SPI_Cmd(SPI1, ENABLE);
 
-	/* Clear the shift register */
-	spi_write(0x00);
-
 	/* Set the LCD to 4 bit interface */
-	spi_write(0x02);
-	spi_write(0x82);
 	spi_write(0x02);
 
 	/* Set the LCD to 2 lines */
@@ -94,23 +89,25 @@ void spi_write(uint8_t data) {
  * by pulsing EN, then do the same for 4 low bits
  */
 void lcd_cmd(uint8_t data) {
-	/* Send HIGH bits */
-	spi_write(0x00 | (data >> 4));
-	spi_write(0x80 | (data >> 4));
-	spi_write(0x00 | (data >> 4));
 	/* Send LOW bits */
 	spi_write(0x00 | (data & 0x0F));
 	spi_write(0x80 | (data & 0x0F));
 	spi_write(0x00 | (data & 0x0F));
+	for (volatile int i=0; i < 6000000; i++);
+	/* Send HIGH bits */
+	spi_write(0x00 | (data >> 4));
+	spi_write(0x80 | (data >> 4));
+	spi_write(0x00 | (data >> 4));
 }
 
 void lcd_char(char c) {
-	/* Send HIGH bits */
-	spi_write(0x40 | ((uint8_t)c >> 4));
-	spi_write(0xC0 | ((uint8_t)c >> 4));
-	spi_write(0x40 | ((uint8_t)c >> 4));
 	/* Send LOW bits */
 	spi_write(0x40 | ((uint8_t)c & 0x0F));
 	spi_write(0xC0 | ((uint8_t)c & 0x0F));
 	spi_write(0x40 | ((uint8_t)c & 0x0F));
+	for (volatile int i=0; i < 6000000; i++);
+	/* Send HIGH bits */
+	spi_write(0x40 | ((uint8_t)c >> 4));
+	spi_write(0xC0 | ((uint8_t)c >> 4));
+	spi_write(0x40 | ((uint8_t)c >> 4));
 }
