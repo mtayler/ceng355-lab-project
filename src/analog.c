@@ -23,8 +23,8 @@ void dac_write(uint16_t value) {
 	DAC->DHR12R1 = (value & DAC_DHR12R1_DACC1DHR);
 }
 
-uint32_t freq_read(void) {
-	return (TIMER_CLOCK_FREQ)/current_count;
+float freq_read(void) {
+	return (TIMER_CLOCK_FREQ)/(float)current_count;
 }
 
 /* Initialize the ADC
@@ -161,7 +161,7 @@ void EXTI0_1_IRQHandler() {
 			current_count = TIM2->CNT;
 			uint16_t adc_value = adc_read();
 			dac_write(adc_value);
-			trace_printf("ADC reading: %4u, Frequency: %6u [Hz]\n", adc_value, freq_read());
+			trace_printf("ADC reading: %4u, Frequency: %6f [Hz]\n", adc_value, freq_read());
 			first_edge = 1;
 		}
 

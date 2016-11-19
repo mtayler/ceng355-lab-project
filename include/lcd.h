@@ -4,7 +4,7 @@
 #include "stm32f0xx_conf.h"
 
 /** Wiring
- * PC1 - LCK -> M25
+ * PC2 - LCK -> M25
  * PB5 - MOSI -> M17
  * PB3 - SCK -> M21
  */

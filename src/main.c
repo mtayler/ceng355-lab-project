@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
   // At this stage the system clock should have already been configured
   // at high speed.
   trace_printf("System clock: %u Hz\n", SystemCoreClock);
-  
+
   trace_printf("%s", "Initializing ADC...");
   adc_init();
   adc_enable_pot(1);
@@ -61,6 +61,8 @@ int main(int argc, char* argv[]) {
 	  trace_puts("Looping");
 	  for (char i='A'; i < 'Z'; i++) {
 		  lcd_char(i);
+		  // 1/8 second delay
+		  for (int i=0; i < 6000000; i++);
 	  }
   }
   // Infinite loop, never return.

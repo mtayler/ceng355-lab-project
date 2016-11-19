@@ -15,8 +15,8 @@
 
 /* Wiring:
  * 	Potentiometer/ADC:
- *		- ADC input is PA0
- *		- POT ENABLE wired to PC8
+ *		- ADC input POT M20 -> PA0
+ *		- POT_EN M32 -> PC1
  *	DAC:
  *		- DAC output is PA4
  *	Freq. Measurement:
@@ -48,8 +48,8 @@ void dac_write(uint16_t value);
 
 /* Returns the current input frequency
  * Outputs:
- * 	uint32_t: current frequency in mHz
+ * 	float: current frequency in Hz
  */
-uint32_t freq_read(void);
+float freq_read(void);
 
 #endif // __ANALOG_H__
