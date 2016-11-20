@@ -55,20 +55,23 @@ void lcd_init(void) {
 
 	/* Set the LCD to 4 bit interface */
 	spi_write(0x02);
+	spi_write(0x82);
+	spi_write(0x02);
 
-	/* Set the LCD to 2 lines */
+	/* Set LCD to display 2 lines */
 	lcd_cmd(0x28);
 
 	/* Clear the LCD */
 	lcd_cmd(0x01);
 	/* Home the cursor */
 	lcd_cmd(0x02);
+	for (int i=0;i<12000000;i++);
 	/* Set cursor move direction and disable display shift */
 	lcd_cmd(0x06);
-	/* Set the display on, show the cursor, don't blink */
+	/* Set the display on, don't show the cursor, don't blink */
 	lcd_cmd(0x0C);
-	/* Set the cursor to move, and shift to the right */
-	lcd_cmd(0x10);
+	/* Set the cursor to move right, no display shift */
+	lcd_cmd(0x14);
 	/* Write 'F:    Hz' to first line */
 	lcd_cmd(0x80); // Start at very left
 

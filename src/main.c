@@ -58,17 +58,10 @@ int main(int argc, char* argv[]) {
 
   // Variables required for super loop
   uint16_t adc_value;
+  char *adc_bcd;
 
-  // Infinite loop
+  // Infinite loop, wait for interrupts to do anything
   while (1) {
-
-	  // Here we want to obtain the resistance, send the result to the DAC
-	  // and print it to the LCD
-	  adc_value = adc_read();
-	  dac_write(adc_value); // Send value of ADC to DAC
-
-
-
   }
   // Infinite loop, never return.
   return 0;

@@ -4,6 +4,8 @@
 
 static uint32_t current_count = 0;
 static uint16_t first_edge = 1;
+static uint16_t adc_value;
+char *adc_bcd;
 char *bcd_value;
 
 uint16_t adc_read(void) {
@@ -23,7 +25,7 @@ char * bcd_converter(uint32_t dec){
 	bcd[3] = (char)(dec%10) + 0x30;
 
 	for (int i = 0; i < 3; i++){
-		if ((bcd == 0x30) && (nonzero == 0)) {
+		if ((bcd[i] == 0x30) && (nonzero == 0)) {
 			bcd[i] = 0x20;
 		}
 		else {
@@ -187,12 +189,25 @@ void EXTI0_1_IRQHandler() {
 			// uint16_t adc_value = adc_read();
 			// dac_write(adc_value);
 
+			/* Wait a short time so the display doesn't flicker too much */
+			for (int i = 0; i < 1200000; i++);
+
 			uint32_t freq_value = (uint32_t)freq_read();
 			bcd_value = bcd_converter(freq_value);
 			/* Write 'F:XXXXHz' to first line of LCD */
 			lcd_cmd(0x82); // Set address to 02
 			for (int i = 0; i < 4; i++){
 				lcd_char(*(bcd_value + i));
+			}
+			// Here we want to obtain the resistance, send the result to the DAC
+			// and print it to the LCD. A short wait time will also be added so the display doesn't flicker too much
+			adc_value = adc_read();
+			dac_write(adc_value); // Send value of ADC to DAC
+			adc_bcd = bcd_converter(adc_value);
+			/* Write 'R:XXXXOh' to first line of LCD */
+			lcd_cmd(0xC2); // Set address to h42
+			for (int i = 0; i < 4; i++){
+				lcd_char(*(adc_bcd + i));
 			}
 			// trace_printf("Frequency: %6f [Hz]\n", freq_value);
 			first_edge = 1;
