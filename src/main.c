@@ -39,32 +39,39 @@ int main(int argc, char* argv[]) {
   // at high speed.
   trace_printf("System clock: %u Hz\n", SystemCoreClock);
 
-//  trace_printf("%s", "Initializing ADC...");
-//  adc_init();
-//  adc_enable_pot(1);
-//  trace_puts("Done");
-//
-//  trace_printf("%s", "Initializing DAC...");
-//  dac_init();
-//  trace_puts("Done");
+  trace_printf("%s", "Initializing ADC...");
+  adc_init();
+  adc_enable_pot(1);
+  trace_puts("Done");
+
+  trace_printf("%s", "Initializing DAC...");
+  dac_init();
+  trace_puts("Done");
 
   trace_printf("%s", "Initializing LCD...");
   lcd_init();
   trace_puts("Done");
 
-//  trace_printf("%s", "Initializing frequency monitor...");
-//  freq_init();
-//  trace_puts("Done");
+  trace_printf("%s", "Initializing frequency monitor...");
+  freq_init();
+  trace_puts("Done");
+
+  // Variables required for super loop
+  uint16_t adc_value;
 
   // Infinite loop
   while (1) {
-	  trace_puts("Looping");
-	  for (char i='A'; i < 'Z'; i++) {
-		  lcd_char(i);
-		  for (volatile int i=0; i < 6000000; i++);
-	  }
+
+	  // Here we want to obtain the resistance, send the result to the DAC
+	  // and print it to the LCD
+	  adc_value = adc_read();
+	  dac_write(adc_value); // Send value of ADC to DAC
+
+
+
   }
   // Infinite loop, never return.
+  return 0;
 }
 
 

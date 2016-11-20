@@ -4,9 +4,34 @@
 
 static uint32_t current_count = 0;
 static uint16_t first_edge = 1;
+char *bcd_value;
 
 uint16_t adc_read(void) {
 	return ADC1->DR;
+}
+
+/* Converts regular binary numbers to BCD for sending to the LCD */
+char * bcd_converter(uint32_t dec){
+	static char bcd[4];
+	uint8_t nonzero = 0;
+
+	bcd[0] = (char)(dec/1000) + 0x30;
+	dec = dec % 1000;
+	bcd[1] = (char)(dec/100) + 0x30;
+	dec = dec % 100;
+	bcd[2] = (char)(dec/10) + 0x30;
+	bcd[3] = (char)(dec%10) + 0x30;
+
+	for (int i = 0; i < 3; i++){
+		if ((bcd == 0x30) && (nonzero == 0)) {
+			bcd[i] = 0x20;
+		}
+		else {
+			nonzero = 1;
+		}
+	}
+
+	return bcd;
 }
 
 void adc_enable_pot(uint8_t state) {
@@ -159,9 +184,17 @@ void EXTI0_1_IRQHandler() {
 			TIM2->CR1 &= ~0x1;
 			/* Read the current timer count */
 			current_count = TIM2->CNT;
-			uint16_t adc_value = adc_read();
-			dac_write(adc_value);
-			trace_printf("ADC reading: %4u, Frequency: %6f [Hz]\n", adc_value, freq_read());
+			// uint16_t adc_value = adc_read();
+			// dac_write(adc_value);
+
+			uint32_t freq_value = (uint32_t)freq_read();
+			bcd_value = bcd_converter(freq_value);
+			/* Write 'F:XXXXHz' to first line of LCD */
+			lcd_cmd(0x82); // Set address to 02
+			for (int i = 0; i < 4; i++){
+				lcd_char(*(bcd_value + i));
+			}
+			// trace_printf("Frequency: %6f [Hz]\n", freq_value);
 			first_edge = 1;
 		}
 
