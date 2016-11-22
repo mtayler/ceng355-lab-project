@@ -3,6 +3,8 @@
 
 #include "stm32f0xx_conf.h"
 
+#define MAX_DIGITS (4)
+
 /** Wiring
  * PC2 - LCK -> M25
  * PB5 - MOSI -> M17
@@ -16,5 +18,7 @@ void lcd_clear(void);
 void lcd_cmd(uint8_t data);
 
 void lcd_char(char c);
+
+char* num_to_ascii(uint32_t num);
 
 #endif //__LCD_H__

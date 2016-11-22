@@ -56,18 +56,12 @@ int main(int argc, char* argv[]) {
   freq_init();
   trace_puts("Done");
 
-  // Variables required for super loop
-  uint16_t adc_value;
-  char *adc_bcd;
-
   // Infinite loop, wait for interrupts to do anything
   while (1) {
   }
   // Infinite loop, never return.
   return 0;
 }
-
-
 
 #pragma GCC diagnostic pop
 

@@ -1,39 +1,14 @@
 #include "analog.h"
 
 #include "diag/Trace.h"
+#include "lcd.h"
 
 static uint32_t current_count = 0;
 static uint16_t first_edge = 1;
 static uint16_t adc_value;
-char *adc_bcd;
-char *bcd_value;
 
 uint16_t adc_read(void) {
 	return ADC1->DR;
-}
-
-/* Converts regular binary numbers to BCD for sending to the LCD */
-char * bcd_converter(uint32_t dec){
-	static char bcd[4];
-	uint8_t nonzero = 0;
-
-	bcd[0] = (char)(dec/1000) + 0x30;
-	dec = dec % 1000;
-	bcd[1] = (char)(dec/100) + 0x30;
-	dec = dec % 100;
-	bcd[2] = (char)(dec/10) + 0x30;
-	bcd[3] = (char)(dec%10) + 0x30;
-
-	for (int i = 0; i < 3; i++){
-		if ((bcd[i] == 0x30) && (nonzero == 0)) {
-			bcd[i] = 0x20;
-		}
-		else {
-			nonzero = 1;
-		}
-	}
-
-	return bcd;
 }
 
 void adc_enable_pot(uint8_t state) {
@@ -63,7 +38,7 @@ void adc_init(void) {
 	/* Configure PC1 as push-pull output  */
 	GPIOC->MODER |= GPIO_MODER_MODER1_0;
 	GPIOC->OTYPER &= ~GPIO_OTYPER_OT_1;
-	/* Ensure high-speed mode for PC8 */
+	/* Ensure high-speed mode for PC1 */
 	GPIOC->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR1;
 	/* Disable any pull up/down resistors on PC1 */
 	GPIOC->PUPDR &= ~GPIO_PUPDR_PUPDR1;
@@ -174,6 +149,8 @@ void TIM2_IRQHandler() {
 
 void EXTI0_1_IRQHandler() {
 	/* Check if EXTI1 interrupt pending flag is set */
+	// Disable interrupts while servicing
+	NVIC_DisableIRQ(EXTI0_1_IRQn);
 	if (EXTI->PR & EXTI_PR_PR1) {
 		if (first_edge) {
 			first_edge = 0;
@@ -186,28 +163,23 @@ void EXTI0_1_IRQHandler() {
 			TIM2->CR1 &= ~0x1;
 			/* Read the current timer count */
 			current_count = TIM2->CNT;
-			// uint16_t adc_value = adc_read();
-			// dac_write(adc_value);
-
-			/* Wait a short time so the display doesn't flicker too much */
-			for (int i = 0; i < 1200000; i++);
 
 			uint32_t freq_value = (uint32_t)freq_read();
-			bcd_value = bcd_converter(freq_value);
-			/* Write 'F:XXXXHz' to first line of LCD */
+			char* freq_ascii = num_to_ascii(freq_value);
+			// Write the frequency value to the LCD
 			lcd_cmd(0x82); // Set address to 02
 			for (int i = 0; i < 4; i++){
-				lcd_char(*(bcd_value + i));
+				lcd_char(*(freq_ascii + i));
 			}
 			// Here we want to obtain the resistance, send the result to the DAC
 			// and print it to the LCD. A short wait time will also be added so the display doesn't flicker too much
 			adc_value = adc_read();
 			dac_write(adc_value); // Send value of ADC to DAC
-			adc_bcd = bcd_converter(adc_value);
-			/* Write 'R:XXXXOh' to first line of LCD */
+			char* resistance_ascii = num_to_ascii(adc_value);
+			// Write the resistance value to the LCD
 			lcd_cmd(0xC2); // Set address to h42
-			for (int i = 0; i < 4; i++){
-				lcd_char(*(adc_bcd + i));
+			for (int i = 0; i < MAX_DIGITS; i++) {
+				lcd_char(*(resistance_ascii + i));
 			}
 			// trace_printf("Frequency: %6f [Hz]\n", freq_value);
 			first_edge = 1;
@@ -216,4 +188,6 @@ void EXTI0_1_IRQHandler() {
 		/* Clear the interrupt flag */
 		EXTI->PR = EXTI_PR_PR1;
 	}
+
+	NVIC_EnableIRQ(EXTI0_1_IRQn);
 }
