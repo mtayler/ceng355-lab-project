@@ -58,6 +58,7 @@ int main(int argc, char* argv[]) {
 
   // Infinite loop, wait for interrupts to do anything
   while (1) {
+
   }
   // Infinite loop, never return.
   return 0;

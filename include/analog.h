@@ -50,6 +50,6 @@ void dac_write(uint16_t value);
  * Outputs:
  * 	float: current frequency in Hz
  */
-float freq_read(void);
+uint32_t period_to_freq(uint32_t count);
 
 #endif // __ANALOG_H__

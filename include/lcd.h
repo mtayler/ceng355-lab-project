@@ -5,6 +5,11 @@
 
 #define MAX_DIGITS (4)
 
+/* Maximum required delay between SPI writes */
+#define MAX_DELAY ((uint32_t)96000)
+/* Delay between characters */
+#define CHAR_DELAY ((uint32_t)4800)
+
 /** Wiring
  * PC2 - LCK -> M25
  * PB5 - MOSI -> M17

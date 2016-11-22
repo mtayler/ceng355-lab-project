@@ -3,7 +3,8 @@
 #include "diag/Trace.h"
 #include "lcd.h"
 
-static uint32_t current_count = 0;
+#define UPDATE_DELAY (800000)
+
 static uint16_t first_edge = 1;
 static uint16_t adc_value;
 
@@ -25,8 +26,8 @@ void dac_write(uint16_t value) {
 	DAC->DHR12R1 = (value & DAC_DHR12R1_DACC1DHR);
 }
 
-float freq_read(void) {
-	return (TIMER_CLOCK_FREQ)/(float)current_count;
+uint32_t period_to_freq(uint32_t count) {
+	return (TIMER_CLOCK_FREQ)/count;
 }
 
 /* Initialize the ADC
@@ -162,26 +163,30 @@ void EXTI0_1_IRQHandler() {
 			/* Stop the timer */
 			TIM2->CR1 &= ~0x1;
 			/* Read the current timer count */
-			current_count = TIM2->CNT;
+			uint32_t count = TIM2->CNT;
 
-			uint32_t freq_value = (uint32_t)freq_read();
+			uint32_t freq_value = period_to_freq(count);
 			char* freq_ascii = num_to_ascii(freq_value);
 			// Write the frequency value to the LCD
 			lcd_cmd(0x82); // Set address to 02
-			for (int i = 0; i < 4; i++){
+			for (int i = MAX_DIGITS-1; i >= 0; i--){
 				lcd_char(*(freq_ascii + i));
 			}
 			// Here we want to obtain the resistance, send the result to the DAC
 			// and print it to the LCD. A short wait time will also be added so the display doesn't flicker too much
 			adc_value = adc_read();
+			// Get the string for resistance rounded to the 100th
 			dac_write(adc_value); // Send value of ADC to DAC
-			char* resistance_ascii = num_to_ascii(adc_value);
+			char* resistance_ascii = num_to_ascii((((uint32_t)(adc_value * ((float)5000/4095)) + 50)/ 100)*100);
 			// Write the resistance value to the LCD
 			lcd_cmd(0xC2); // Set address to h42
-			for (int i = 0; i < MAX_DIGITS; i++) {
+			for (int i = MAX_DIGITS-1; i >= 0; i--) {
 				lcd_char(*(resistance_ascii + i));
 			}
-			// trace_printf("Frequency: %6f [Hz]\n", freq_value);
+
+			TIM3->CNT = UPDATE_DELAY;
+			TIM3->CR1 |= 0x1;
+			while(TIM3->CNT > 1);
 			first_edge = 1;
 		}
 
